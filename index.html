@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Astraélica</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{
+            background:#F2F2F7;
+            font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;
+            min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:16px;
+            -webkit-font-smoothing:antialiased;color:#1D1D1F;
+        }
+        .app{max-width:1500px;width:100%}
+        .app-header{text-align:center;padding:24px 0 16px}
+        .app-header h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;color:#1D1D1F}
+        .app-header p{color:#48484A;font-size:.9rem;margin-top:4px;font-weight:400}
+        .workspace{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}
+        .canvas-area{flex:2;min-width:350px;display:flex;flex-direction:column;align-items:center;position:relative}
+        .canvas-wrap{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06);padding:8px;width:100%;max-width:616px}
+        #mainCanvas{background:#FBFBFD;border-radius:12px;width:100%;height:auto;aspect-ratio:1/1;cursor:grab;display:block;touch-action:none}
+        #mainCanvas:active{cursor:grabbing}
+        .canvas-hint{margin-top:8px;font-size:.75rem;color:#636366;text-align:center}
+        .zoom-controls{position:absolute;bottom:48px;right:20px;display:flex;flex-direction:column;gap:1px;background:#E5E5EA;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+        .zoom-controls button{width:36px;height:36px;border:none;border-radius:0;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);font-size:1.1rem;font-weight:500;color:#1D1D1F;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin:0;transition:background .15s}
+        .zoom-controls button:hover{background:rgba(0,0,0,.05)}
+        .zoom-controls button:active{background:rgba(0,0,0,.1)}
+        .controls{flex:1.3;min-width:340px;max-width:520px;display:flex;flex-direction:column;gap:12px;max-height:92vh;overflow-y:auto;overflow-x:visible;scrollbar-width:thin;scrollbar-color:#C7C7CC transparent;padding:0 4px 16px 0}
+        .controls::-webkit-scrollbar{width:6px}
+        .controls::-webkit-scrollbar-thumb{background:#C7C7CC;border-radius:3px}
+        .panel{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+        .toolbar-row{display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px 12px}
+        .btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:8px;border:none;font-size:.8rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+        .btn:active{transform:scale(.97)}
+        .btn-primary{background:#007AFF;color:#fff}
+        .btn-primary:hover{background:#0066D6}
+        .btn-secondary{background:#E5E5EA;color:#1D1D1F}
+        .btn-secondary:hover{background:#D1D1D6}
+        .btn-danger{background:#FF3B30;color:#fff}
+        .btn-danger:hover{background:#D63029}
+        .btn-sm{padding:6px 12px;font-size:.75rem}
+        .config-row{padding:12px 16px 4px}
+        .config-row label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#636366;display:block;margin-bottom:6px}
+        .config-row select{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #D1D1D6;font-size:.85rem;font-family:inherit;background:#fff;color:#1D1D1F;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6' fill='none' stroke='%23636366' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+        .config-row select:focus{border-color:#007AFF;outline:none;box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+        .layer{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:opacity .2s}
+        .layer.disabled{opacity:.45}
+        .layer-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;user-select:none;transition:background .12s}
+        .layer-header:hover{background:#F9F9FB}
+        .layer-header:active{background:#F2F2F7}
+        .layer-title{display:flex;align-items:center;gap:8px;font-size:.88rem;font-weight:600;color:#1D1D1F}
+        .layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+        .layer-arrow{font-size:.6rem;color:#48484A;transition:transform .2s;margin-left:auto;margin-right:12px}
+        .layer.collapsed .layer-arrow{transform:rotate(-90deg)}
+        .apple-toggle{position:relative;width:42px;height:26px;flex-shrink:0}
+        .apple-toggle input{opacity:0;width:0;height:0;position:absolute}
+        .apple-toggle .track{position:absolute;inset:0;background:#E5E5EA;border-radius:26px;cursor:pointer;transition:background .25s}
+        .apple-toggle .track:before{content:'';position:absolute;height:22px;width:22px;left:2px;top:2px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .25s}
+        .apple-toggle input:checked+.track{background:#34C759}
+        .apple-toggle input:checked+.track:before{transform:translateX(16px)}
+        .apple-toggle input:focus-visible+.track{box-shadow:0 0 0 3px rgba(0,122,255,.3)}
+        .layer-body{padding:0 16px 16px;overflow:hidden;border-top:1px solid #F2F2F7}
+        .layer.collapsed .layer-body{display:none}
+        .section-lbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#636366;margin:12px 0 4px;padding-top:12px;border-top:1px solid #F2F2F7}
+        .section-lbl:first-child{border-top:none;padding-top:0;margin-top:12px}
+        .param-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:flex-start}
+        .param-group{flex:1;min-width:72px}
+        .param-group label{font-size:.7rem;font-weight:500;color:#48484A;display:block;margin-bottom:4px}
+        .param-group input[type="number"],.param-group select{width:100%;padding:7px 8px;border-radius:8px;border:1px solid #D1D1D6;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;text-align:center;font-size:.82rem;color:#1D1D1F;background:#fff;transition:border-color .15s,box-shadow .15s}
+        .param-group select{font-family:inherit;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6' fill='none' stroke='%23636366' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;text-align:left}
+        .param-group input:focus,.param-group select:focus{border-color:#007AFF;outline:none;box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+        .appearance-row{display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap}
+        .color-pick{display:flex;align-items:center;gap:8px}
+        .color-pick span.lbl{font-size:.7rem;font-weight:500;color:#48484A}
+        .color-pick .color-swatch{width:30px;height:30px;border-radius:8px;border:1px solid #D1D1D6;cursor:pointer;flex-shrink:0;position:relative;transition:border-color .15s}
+        .color-pick .color-swatch:hover{border-color:#007AFF}
+        .color-pick .color-swatch input[type="color"]{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;border:none;padding:0}
+        .color-pick input[type="text"]{width:80px;padding:7px 8px;border-radius:8px;border:1px solid #D1D1D6;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;text-align:center;font-size:.82rem;color:#1D1D1F;background:#fff;text-transform:uppercase;transition:border-color .15s,box-shadow .15s}
+        .color-pick input[type="text"]:focus{border-color:#007AFF;outline:none;box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+        .opacity-control{display:flex;align-items:center;gap:8px;flex:1;min-width:110px}
+        .opacity-control span.lbl{font-size:.7rem;font-weight:500;color:#48484A;white-space:nowrap}
+        .opacity-control input[type="number"]{width:62px;padding:7px 8px;border-radius:8px;border:1px solid #D1D1D6;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;text-align:center;font-size:.82rem;color:#1D1D1F;background:#fff;transition:border-color .15s,box-shadow .15s}
+        .opacity-control input[type="number"]:focus{border-color:#007AFF;outline:none;box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+        .export-panel{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:16px;display:flex;gap:8px}
+        .export-panel .btn{flex:1}
+        footer{margin-top:16px;text-align:center;font-size:.75rem;color:#636366;padding-top:12px}
+        @media(max-width:800px){
+            body{padding:8px}
+            .workspace{flex-direction:column;align-items:stretch}
+            .canvas-area{min-width:0;flex:none}
+            .canvas-wrap{max-width:100%}
+            .controls{max-width:100%;max-height:none;min-width:0;overflow-y:visible;padding:0 0 16px 0}
+            .zoom-controls{bottom:40px;right:12px}
+            .param-group{min-width:80px}
+            .param-group input[type="number"],.param-group select{padding:10px 8px;font-size:.88rem;min-height:44px}
+            .color-pick .color-swatch{width:44px;height:44px}
+            .color-pick input[type="text"]{padding:10px 8px;font-size:.88rem;min-height:44px;width:90px}
+            .opacity-control input[type="number"]{padding:10px 8px;font-size:.88rem;min-height:44px;width:72px}
+            .btn{padding:12px 16px;font-size:.88rem;min-height:44px}
+            .btn-sm{padding:10px 12px;font-size:.82rem;min-height:44px}
+            .layer-header{padding:16px;min-height:52px}
+            .apple-toggle{width:51px;height:31px}
+            .apple-toggle .track:before{height:27px;width:27px}
+            .apple-toggle input:checked+.track:before{transform:translateX(20px)}
+            .config-row select{padding:10px 12px;font-size:.88rem;min-height:44px}
+            .export-panel{flex-direction:column}
+            .export-panel .btn{width:100%}
+            .toolbar-row{flex-wrap:wrap;gap:6px}
+            .toolbar-row .btn{flex:1;min-width:0}
+            .app-header h1{font-size:1.6rem}
+            .app-header p{font-size:.82rem}
+            footer{font-size:.7rem}
+        }
+        @media(max-width:380px){
+            .param-row{flex-direction:column;gap:8px}
+            .param-group{min-width:100%}
+            .appearance-row{flex-direction:column;align-items:stretch;gap:12px}
+            .color-pick{justify-content:space-between}
+            .opacity-control{justify-content:space-between}
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="app-header">
+        <h1>Astraélica</h1>
+        <p>Generador de patrones geométricos para elaborar símbolos de marca</p>
+    </div>
+    <div class="workspace">
+        <div class="canvas-area">
+            <div class="canvas-wrap">
+                <canvas id="mainCanvas" width="600" height="600"></canvas>
+            </div>
+            <div class="zoom-controls">
+                <button id="zoomIn" title="Acercar">+</button>
+                <button id="zoomOut" title="Alejar">&minus;</button>
+                <button id="zoomReset" title="Restablecer">&#8226;</button>
+            </div>
+            <div class="canvas-hint" id="canvasHint"></div>
+        </div>
+        <div class="controls" id="controlsPanel"></div>
+    </div>
+    <footer>Orden de capas: Líneas técnicas &rarr; Curvas primarias &rarr; Curvas secundarias &rarr; Ornamento A &rarr; Ornamento B</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const LAYER_DEFS = [
+    {id:'lines', name:'Líneas técnicas', type:'fixed',
+     defaults:{enabled:true,axes:4,segments:12,startSize:18,growth:1.12,openness:0,rotation:15,thickness:1.5,color:'#8B5A2B',direction:1,opacity:1,offsetX:0,offsetY:0}},
+    {id:'arcsA', name:'Curvas primarias', type:'fixed',
+     defaults:{enabled:true,axes:4,segments:12,startSize:18,growth:1.12,openness:0.8,rotation:0,thickness:2,color:'#1A2A4F',direction:1,opacity:1,offsetX:0,offsetY:0}},
+    {id:'arcsD', name:'Curvas secundarias', type:'fixed',
+     defaults:{enabled:true,axes:4,segments:12,startSize:18,growth:1.12,openness:-0.8,rotation:0,thickness:1.5,color:'#D4AF37',direction:-1,opacity:1,offsetX:0,offsetY:0}},
+    {id:'varG', name:'Ornamento A', type:'variable',
+     defaults:{enabled:true,axes:4,segments:12,startSize:18,growth:1.12,openness:0.8,rotation:0,thickness:2.5,color:'#FF6B6B',pattern:'all-right',opacity:1,offsetX:0,offsetY:0}},
+    {id:'varH', name:'Ornamento B', type:'variable',
+     defaults:{enabled:true,axes:4,segments:12,startSize:18,growth:1.12,openness:0.6,rotation:10,thickness:2,color:'#44AA99',pattern:'all-right',opacity:1,offsetX:0,offsetY:0}}
+];
+
+const PATTERNS = [
+    {value:'all-right',label:'Todos derecha'},{value:'all-left',label:'Todos izquierda'},
+    {value:'alternate',label:'Alternar segmento'},{value:'alternate-axis',label:'Alternar por eje'},
+    {value:'zigzag',label:'Zigzag (pares de 2)'},{value:'random',label:'Aleatorio'}
+];
+
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 600; canvas.height = 600;
+
+let state = {};
+let undoStack = [], undoIndex = -1;
+const MAX_UNDO = 50;
+let viewZoom = 1, viewPanX = 0, viewPanY = 0;
+let isDragging = false, dragStartX = 0, dragStartY = 0, panStartX = 0, panStartY = 0;
+
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+function initState(){ state = {}; LAYER_DEFS.forEach(d => { state[d.id] = deepClone(d.defaults); }); }
+function pushUndo(){ undoStack = undoStack.slice(0, undoIndex+1); undoStack.push(deepClone(state)); if(undoStack.length > MAX_UNDO) undoStack.shift(); undoIndex = undoStack.length-1; }
+function undo(){ if(undoIndex > 0){ undoIndex--; state = deepClone(undoStack[undoIndex]); syncUI(); draw(); } }
+function redo(){ if(undoIndex < undoStack.length-1){ undoIndex++; state = deepClone(undoStack[undoIndex]); syncUI(); draw(); } }
+
+function dirSign(pattern, ai, si){
+    switch(pattern){
+        case 'all-left': return -1;
+        case 'alternate': return si%2===0?1:-1;
+        case 'alternate-axis': return ai%2===0?1:-1;
+        case 'zigzag': return Math.floor(si/2)%2===0?1:-1;
+        case 'random': return Math.random()<.5?1:-1;
+        default: return 1;
+    }
+}
+
+function computeAxesData(layerDef, ls){
+    const {axes, segments:numSegs, startSize, growth, openness, rotation, direction, pattern, offsetX, offsetY} = ls;
+    if(axes < 1) return [];
+    const cx = 300 + (offsetX||0), cy = 300 + (offsetY||0);
+    const angleStep = 2*Math.PI/axes, baseRot = rotation*Math.PI/180;
+    const result = [];
+    for(let i = 0; i < axes; i++){
+        const ang = i*angleStep + baseRot;
+        const dx = Math.cos(ang), dy = Math.sin(ang);
+        let curSize = startSize, lastX = cx, lastY = cy;
+        const segs = [];
+        for(let s = 0; s < numSegs; s++){
+            const nx = cx + dx*curSize, ny = cy + dy*curSize;
+            const eff = layerDef.type === 'variable' ? openness * dirSign(pattern, i, s) : openness * (direction||1);
+            if(Math.abs(eff) > 0.001){
+                const mx = (lastX+nx)/2, my = (lastY+ny)/2;
+                const sdx = nx-lastX, sdy = ny-lastY;
+                const len = Math.hypot(sdx, sdy);
+                if(len > 0.01){
+                    const px = -sdy/len, py = sdx/len;
+                    const off = len*eff*.5;
+                    const acx = mx+px*off, acy = my+py*off;
+                    const r = Math.hypot(acx-lastX, acy-lastY);
+                    const sa = Math.atan2(lastY-acy, lastX-acx);
+                    const ea = Math.atan2(ny-acy, nx-acx);
+                    let ad = ea-sa;
+                    if(ad > Math.PI) ad -= 2*Math.PI;
+                    if(ad < -Math.PI) ad += 2*Math.PI;
+                    if(Math.abs(ad) > 0.01){
+                        segs.push({type:'arc',cx:acx,cy:acy,radius:r,startAng:sa,endAng:ea,ccw:ad<0,x1:lastX,y1:lastY,x2:nx,y2:ny});
+                    }
+                }
+            } else {
+                segs.push({type:'line',x1:lastX,y1:lastY,x2:nx,y2:ny});
+            }
+            lastX = nx; lastY = ny;
+            curSize *= growth;
+        }
+        result.push({segments:segs, tipX:lastX, tipY:lastY});
+    }
+    result.cx = cx; result.cy = cy;
+    return result;
+}
+
+function drawLayerCanvas(ctx, layerDef, ls){
+    const axesData = computeAxesData(layerDef, ls);
+    if(!axesData.length) return;
+    ctx.strokeStyle = ls.color;
+    ctx.lineWidth = ls.thickness;
+    ctx.globalAlpha = ls.opacity;
+    ctx.lineCap = 'round';
+    for(const axis of axesData){
+        for(const seg of axis.segments){
+            ctx.beginPath();
+            if(seg.type==='line'){ctx.moveTo(seg.x1,seg.y1);ctx.lineTo(seg.x2,seg.y2);}
+            else if(seg.ccw) ctx.arc(seg.cx,seg.cy,seg.radius,seg.endAng,seg.startAng);
+            else ctx.arc(seg.cx,seg.cy,seg.radius,seg.startAng,seg.endAng);
+            ctx.stroke();
+        }
+    }
+}
+
+function draw(){
+    ctx.save();
+    ctx.clearRect(0,0,600,600);
+    ctx.fillStyle='#FBFBFD'; ctx.fillRect(0,0,600,600);
+    ctx.translate(300+viewPanX,300+viewPanY);
+    ctx.scale(viewZoom,viewZoom);
+    ctx.translate(-300,-300);
+    LAYER_DEFS.forEach(def => {
+        const ls = state[def.id];
+        if(!ls.enabled) return;
+        drawLayerCanvas(ctx, def, ls);
+    });
+    ctx.restore();
+}
+
+function svgArcD(seg, forward){
+    const sa = forward?seg.startAng:seg.endAng, ea = forward?seg.endAng:seg.startAng;
+    const sx = seg.cx+seg.radius*Math.cos(sa), sy = seg.cy+seg.radius*Math.sin(sa);
+    const ex = seg.cx+seg.radius*Math.cos(ea), ey = seg.cy+seg.radius*Math.sin(ea);
+    const sweep = forward ? (seg.ccw?0:1) : (seg.ccw?1:0);
+    return {sx,sy,ex,ey,d:`A ${seg.radius.toFixed(2)} ${seg.radius.toFixed(2)} 0 0 ${sweep} ${ex.toFixed(2)} ${ey.toFixed(2)}`};
+}
+
+function buildLayerSVG(layerDef, ls){
+    const axesData = computeAxesData(layerDef, ls);
+    if(!axesData.length) return '';
+    const parts = [];
+    const safeName = layerDef.name.replace(/[^a-zA-Z0-9]/g,'-').toLowerCase();
+    const opAttr = ls.opacity<1?` opacity="${ls.opacity}"`:'';
+    parts.push(`<g id="${safeName}" stroke="${ls.color}" stroke-width="${ls.thickness}" fill="none" stroke-linecap="round"${opAttr}>`);
+    for(const axis of axesData){
+        for(const seg of axis.segments){
+            if(seg.type==='line'){
+                parts.push(`<line x1="${seg.x1.toFixed(2)}" y1="${seg.y1.toFixed(2)}" x2="${seg.x2.toFixed(2)}" y2="${seg.y2.toFixed(2)}"/>`);
+            } else {
+                const a = svgArcD(seg,true);
+                parts.push(`<path d="M ${a.sx.toFixed(2)} ${a.sy.toFixed(2)} ${a.d}"/>`);
+            }
+        }
+    }
+    parts.push('</g>');
+    return parts.join('\n');
+}
+
+function buildSVG(){
+    const p = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">'];
+    LAYER_DEFS.forEach(def => {
+        const ls = state[def.id];
+        if(!ls.enabled) return;
+        p.push(buildLayerSVG(def, ls));
+    });
+    p.push('</svg>');
+    return p.join('\n');
+}
+
+function downloadBlob(b,n){ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href); }
+function exportSVG(){ downloadBlob(new Blob([buildSVG()],{type:'image/svg+xml'}),'astraelica.svg'); }
+function exportPNG(){
+    const tmp=document.createElement('canvas');tmp.width=1200;tmp.height=1200;
+    const tc=tmp.getContext('2d');tc.scale(2,2);tc.fillStyle='#FBFBFD';tc.fillRect(0,0,600,600);
+    LAYER_DEFS.forEach(def => { const ls=state[def.id]; if(!ls.enabled) return; drawLayerCanvas(tc,def,ls); });
+    tmp.toBlob(b=>downloadBlob(b,'astraelica.png'),'image/png');
+}
+
+function saveConfig(){
+    const n=prompt('Nombre de la configuracion:');if(!n) return;
+    const s=JSON.parse(localStorage.getItem('astraelica_configs')||'{}');s[n]=deepClone(state);
+    localStorage.setItem('astraelica_configs',JSON.stringify(s));buildConfigSelect();
+}
+function loadConfig(n){
+    if(n==='default'){initState();pushUndo();syncUI();draw();return;}
+    const s=JSON.parse(localStorage.getItem('astraelica_configs')||'{}');
+    if(s[n]){state=deepClone(s[n]);pushUndo();syncUI();draw();}
+}
+function deleteConfig(n){
+    const s=JSON.parse(localStorage.getItem('astraelica_configs')||'{}');delete s[n];
+    localStorage.setItem('astraelica_configs',JSON.stringify(s));buildConfigSelect();
+}
+function buildConfigSelect(){
+    const sel=document.getElementById('configSelect');if(!sel)return;sel.innerHTML='';
+    const ph=document.createElement('option');ph.value='';ph.textContent='Seleccionar...';ph.disabled=true;ph.selected=true;sel.appendChild(ph);
+    const df=document.createElement('option');df.value='default';df.textContent='Restablecer valores iniciales';sel.appendChild(df);
+    const sv=JSON.parse(localStorage.getItem('astraelica_configs')||'{}'),keys=Object.keys(sv);
+    if(keys.length){const g=document.createElement('optgroup');g.label='Mis configuraciones';keys.forEach(k=>{const o=document.createElement('option');o.value='saved:'+k;o.textContent=k;g.appendChild(o);});sel.appendChild(g);}
+}
+
+function paramNum(layer,param,label,val,min,max,step){
+    return `<div class="param-group"><label>${label}</label><input type="number" data-layer="${layer}" data-param="${param}" value="${val}" min="${min}" max="${max}" step="${step}"></div>`;
+}
+function colorPickHTML(layer,param,nativeParam,val,label){
+    return `<div class="color-pick"><span class="lbl">${label}</span><div class="color-swatch" id="swatch_${layer}_${param}" style="background:${val}"><input type="color" data-layer="${layer}" data-param="${nativeParam}" value="${val}"></div><input type="text" data-layer="${layer}" data-param="${param}" value="${val}" maxlength="7" placeholder="#000000"></div>`;
+}
+
+function buildControls(){
+    const panel=document.getElementById('controlsPanel');
+    let h='';
+    h+='<div class="panel">';
+    h+='<div class="config-row"><label>Mis configuraciones</label><select id="configSelect"></select></div>';
+    h+='<div class="toolbar-row">';
+    h+='<button class="btn btn-secondary btn-sm" id="btnUndo">Deshacer</button>';
+    h+='<button class="btn btn-secondary btn-sm" id="btnRedo">Rehacer</button>';
+    h+='<button class="btn btn-primary btn-sm" id="btnSave">Guardar</button>';
+    h+='<button class="btn btn-danger btn-sm" id="btnDelSaved">Borrar</button>';
+    h+='</div></div>';
+
+    LAYER_DEFS.forEach(def => {
+        const ls=def.defaults;
+        h+=`<div class="layer" id="mod_${def.id}">`;
+        h+=`<div class="layer-header" data-layer="${def.id}">`;
+        h+=`<div class="layer-title"><span class="layer-dot" style="background:${ls.color}"></span>${def.name}</div>`;
+        h+=`<span class="layer-arrow">&#9660;</span>`;
+        h+=`<label class="apple-toggle" onclick="event.stopPropagation()"><input type="checkbox" data-layer="${def.id}" data-param="enabled" ${ls.enabled?'checked':''}><span class="track"></span></label>`;
+        h+=`</div><div class="layer-body">`;
+
+        h+=`<div class="section-lbl">Geometría</div>`;
+        h+=`<div class="param-row">`;
+        h+=paramNum(def.id,'axes','Ejes',ls.axes,1,20,1);
+        h+=paramNum(def.id,'segments','Segmentos',ls.segments,1,60,1);
+        h+=paramNum(def.id,'startSize','Tam. inicial',ls.startSize,2,120,1);
+        h+=`</div>`;
+        h+=`<div class="param-row">`;
+        h+=paramNum(def.id,'growth','Crecimiento',ls.growth,0.5,2.0,0.01);
+        if(def.type!=='fixed'||def.id!=='lines') h+=paramNum(def.id,'openness','Apertura',ls.openness,-1.2,1.2,0.01);
+        h+=paramNum(def.id,'rotation','Rotación',ls.rotation,-180,180,1);
+        h+=`</div>`;
+        h+=`<div class="param-row">`;
+        h+=paramNum(def.id,'thickness','Grosor',ls.thickness,0.2,10,0.1);
+        if(def.type==='fixed'&&def.id!=='lines'){
+            h+=`<div class="param-group"><label>Dirección</label><select data-layer="${def.id}" data-param="direction"><option value="1"${ls.direction===1?' selected':''}>Derecha</option><option value="-1"${ls.direction===-1?' selected':''}>Izquierda</option></select></div>`;
+        }
+        if(def.type==='variable'){
+            h+=`<div class="param-group"><label>Patrón</label><select data-layer="${def.id}" data-param="pattern">`;
+            PATTERNS.forEach(p=>{h+=`<option value="${p.value}"${ls.pattern===p.value?' selected':''}>${p.label}</option>`;});
+            h+=`</select></div>`;
+        }
+        h+=`</div>`;
+
+        h+=`<div class="section-lbl">Transformación</div>`;
+        h+=`<div class="param-row">`;
+        h+=paramNum(def.id,'offsetX','Desp. X',ls.offsetX,-200,200,1);
+        h+=paramNum(def.id,'offsetY','Desp. Y',ls.offsetY,-200,200,1);
+        h+=`</div>`;
+
+        h+=`<div class="section-lbl">Apariencia</div>`;
+        h+=`<div class="appearance-row">`;
+        h+=colorPickHTML(def.id,'color','color-native',ls.color,'Trazo');
+        h+=`<div class="opacity-control"><span class="lbl">%</span><input type="number" min="0" max="100" step="5" data-layer="${def.id}" data-param="opacity" value="${Math.round(ls.opacity*100)}"></div>`;
+        h+=`</div>`;
+
+        h+=`</div></div>`;
+    });
+
+    h+='<div class="export-panel">';
+    h+='<button class="btn btn-primary" id="btnExportSVG">Exportar SVG</button>';
+    h+='<button class="btn btn-secondary" id="btnExportPNG">Exportar PNG</button>';
+    h+='</div>';
+
+    panel.innerHTML=h;
+    buildConfigSelect();
+
+    document.getElementById('configSelect').addEventListener('change',function(){const v=this.value;if(v.startsWith('saved:'))loadConfig(v.slice(6));else loadConfig(v);this.selectedIndex=0;});
+    document.getElementById('btnUndo').addEventListener('click',undo);
+    document.getElementById('btnRedo').addEventListener('click',redo);
+    document.getElementById('btnSave').addEventListener('click',saveConfig);
+    document.getElementById('btnDelSaved').addEventListener('click',function(){const v=document.getElementById('configSelect').value;if(v.startsWith('saved:')&&confirm('Borrar "'+v.slice(6)+'"?'))deleteConfig(v.slice(6));});
+    document.getElementById('btnExportSVG').addEventListener('click',exportSVG);
+    document.getElementById('btnExportPNG').addEventListener('click',exportPNG);
+    document.querySelectorAll('.layer-header').forEach(h=>{h.addEventListener('click',function(){this.parentElement.classList.toggle('collapsed');});});
+
+    function updateColorUI(layerId, param, hex){
+        const swId = 'swatch_'+layerId+'_'+param;
+        const sw = document.getElementById(swId); if(sw) sw.style.background = hex;
+        if(param==='color'){
+            const dot=document.querySelector('#mod_'+layerId+' .layer-dot'); if(dot) dot.style.background=hex;
+        }
+        const nat=panel.querySelector(`[data-layer="${layerId}"][data-param="${param}-native"]`); if(nat) nat.value=hex;
+        const txt=panel.querySelector(`input[type="text"][data-layer="${layerId}"][data-param="${param}"]`);
+        if(txt&&document.activeElement!==txt) txt.value=hex;
+    }
+
+    panel.querySelectorAll('[data-layer][data-param]').forEach(el=>{
+        const update=function(){
+            const layer=el.dataset.layer, param=el.dataset.param;
+            if(param==='color-native'){state[layer].color=el.value;updateColorUI(layer,'color',el.value);draw();return;}
+            let val;
+            if(el.type==='checkbox') val=el.checked;
+            else if(param==='opacity') val=Math.max(0,Math.min(100,parseFloat(el.value)||0))/100;
+            else if(el.type==='number') val=parseFloat(el.value);
+            else if(param==='direction') val=parseInt(el.value);
+            else val=el.value;
+            if(param==='color'){
+                if(!/^#[0-9a-fA-F]{6}$/.test(val)) return;
+                state[layer][param]=val;updateColorUI(layer,param,val);draw();return;
+            }
+            state[layer][param]=val;
+            if(param==='enabled') el.closest('.layer').classList.toggle('disabled',!val);
+            draw();
+        };
+        el.addEventListener('input',update);
+        el.addEventListener('change',function(){update();pushUndo();});
+    });
+}
+
+function syncUI(){
+    document.querySelectorAll('[data-layer][data-param]').forEach(el=>{
+        const layer=el.dataset.layer, param=el.dataset.param;
+        if(!state[layer]) return;
+        if(param==='color-native'){el.value=state[layer].color||'#000000';return;}
+        const val=state[layer][param];
+        if(val===undefined) return;
+        if(el.type==='checkbox') el.checked=val;
+        else if(param==='opacity') el.value=Math.round(val*100);
+        else el.value=val;
+        if(param==='enabled') el.closest('.layer').classList.toggle('disabled',!val);
+    });
+    LAYER_DEFS.forEach(def=>{
+        const s=state[def.id];
+        const sw=document.getElementById('swatch_'+def.id+'_color'); if(sw) sw.style.background=s.color;
+        const dot=document.querySelector('#mod_'+def.id+' .layer-dot'); if(dot) dot.style.background=s.color;
+    });
+}
+
+canvas.addEventListener('wheel',function(e){
+    e.preventDefault();
+    const f=e.deltaY>0?0.9:1.1, nz=Math.max(0.2,Math.min(5,viewZoom*f));
+    const r=canvas.getBoundingClientRect();
+    const mx=(e.clientX-r.left)/r.width*600, my=(e.clientY-r.top)/r.height*600;
+    const wx=(mx-300-viewPanX)/viewZoom, wy=(my-300-viewPanY)/viewZoom;
+    viewZoom=nz; viewPanX=mx-300-wx*viewZoom; viewPanY=my-300-wy*viewZoom; draw();
+},{passive:false});
+canvas.addEventListener('mousedown',function(e){isDragging=true;dragStartX=e.clientX;dragStartY=e.clientY;panStartX=viewPanX;panStartY=viewPanY;});
+window.addEventListener('mousemove',function(e){if(!isDragging)return;const s=600/canvas.getBoundingClientRect().width;viewPanX=panStartX+(e.clientX-dragStartX)*s;viewPanY=panStartY+(e.clientY-dragStartY)*s;draw();});
+window.addEventListener('mouseup',function(){isDragging=false;});
+let pinchStartDist=0, pinchStartZoom=1;
+function touchDist(t){ return Math.hypot(t[1].clientX-t[0].clientX, t[1].clientY-t[0].clientY); }
+canvas.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){
+        isDragging=false; pinchStartDist=touchDist(e.touches); pinchStartZoom=viewZoom;
+    } else if(e.touches.length===1){
+        isDragging=true;dragStartX=e.touches[0].clientX;dragStartY=e.touches[0].clientY;panStartX=viewPanX;panStartY=viewPanY;
+    }
+},{passive:true});
+canvas.addEventListener('touchmove',function(e){
+    if(e.touches.length===2){
+        e.preventDefault();
+        const d=touchDist(e.touches);
+        viewZoom=Math.max(0.2,Math.min(5,pinchStartZoom*(d/pinchStartDist)));
+        draw(); return;
+    }
+    if(!isDragging||e.touches.length!==1)return;
+    e.preventDefault();const s=600/canvas.getBoundingClientRect().width;
+    viewPanX=panStartX+(e.touches[0].clientX-dragStartX)*s;viewPanY=panStartY+(e.touches[0].clientY-dragStartY)*s;draw();
+},{passive:false});
+canvas.addEventListener('touchend',function(e){isDragging=false;if(e.touches.length<2)pinchStartDist=0;});
+document.getElementById('zoomIn').addEventListener('click',function(){viewZoom=Math.min(5,viewZoom*1.25);draw();});
+document.getElementById('zoomOut').addEventListener('click',function(){viewZoom=Math.max(0.2,viewZoom*0.8);draw();});
+document.getElementById('zoomReset').addEventListener('click',function(){viewZoom=1;viewPanX=0;viewPanY=0;draw();});
+document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+    if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
+});
+
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+document.getElementById('canvasHint').textContent = isTouchDevice
+    ? 'Pellizcar para zoom · Arrastrar para mover'
+    : 'Rueda para zoom · Arrastrar para mover';
+
+initState();
+buildControls();
+pushUndo();
+draw();
+})();
+</script>
+</body>
+</html>
