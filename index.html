@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Designing with AI</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{
+            background:#F2F2F7;
+            font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;
+            min-height:100vh;display:flex;justify-content:center;padding:48px 16px;
+            -webkit-font-smoothing:antialiased;color:#1D1D1F;
+        }
+        .page{max-width:640px;width:100%}
+        header{margin-bottom:40px}
+        header h1{font-size:2rem;font-weight:700;letter-spacing:-.02em}
+        header p{color:#48484A;font-size:.95rem;margin-top:8px;line-height:1.5}
+        .projects{display:flex;flex-direction:column;gap:12px}
+        .project{
+            background:#fff;border-radius:12px;padding:20px 24px;
+            box-shadow:0 1px 3px rgba(0,0,0,.06);
+            text-decoration:none;color:inherit;
+            transition:box-shadow .15s,transform .15s;
+            display:flex;justify-content:space-between;align-items:center;
+        }
+        .project:hover{box-shadow:0 2px 12px rgba(0,0,0,.1);transform:translateY(-1px)}
+        .project:active{transform:scale(.99)}
+        .project-info h2{font-size:1.1rem;font-weight:600}
+        .project-info p{font-size:.82rem;color:#636366;margin-top:4px;line-height:1.4}
+        .project-arrow{font-size:1.2rem;color:#C7C7CC;flex-shrink:0;margin-left:16px}
+        footer{margin-top:40px;text-align:center;font-size:.75rem;color:#636366}
+        @media(max-width:480px){
+            body{padding:32px 12px}
+            header h1{font-size:1.5rem}
+            .project{padding:16px}
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header>
+        <h1>Designing with AI</h1>
+        <p>Colección de herramientas de diseño generadas con inteligencia artificial.</p>
+    </header>
+    <div class="projects">
+        <a class="project" href="astraelica/">
+            <div class="project-info">
+                <h2>Astraélica</h2>
+                <p>Generador de patrones geométricos para elaborar símbolos de marca.</p>
+            </div>
+            <span class="project-arrow">&rsaquo;</span>
+        </a>
+        <!-- Para añadir un nuevo proyecto, copia este bloque:
+        <a class="project" href="nombre-carpeta/">
+            <div class="project-info">
+                <h2>Nombre del proyecto</h2>
+                <p>Descripción breve del proyecto.</p>
+            </div>
+            <span class="project-arrow">&rsaquo;</span>
+        </a>
+        -->
+    </div>
+    <footer>Herramientas creadas con asistencia de IA</footer>
+</div>
+</body>
+</html>
